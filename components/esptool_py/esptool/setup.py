@@ -107,7 +107,7 @@ setup(
         'flake8-import-order',
     ],
     install_requires=[
-        'pyserial>=3.0',
+        'pyserial>=2.5',
         'pyaes',
         'ecdsa',
     ],

@@ -5,7 +5,6 @@ import subprocess
 import struct
 import sys
 import unittest
-import hashlib
 
 from elftools.elf.elffile import ELFFile
 
@@ -140,20 +139,18 @@ class ESP8266V12SectionHeaderNotAtEnd(BaseTestCase):
     """ Ref https://github.com/espressif/esptool/issues/197 -
     this ELF image has the section header not at the end of the file """
     ELF="esp8266-nonossdkv12-example.elf"
-    BIN_LOAD=ELF+"-0x00000.bin"
-    BIN_IROM=ELF+"-0x40000.bin"
+    BIN=ELF+"-0x00000.bin"
 
     def test_elf_section_header_not_at_end(self):
         self.run_elf2image("esp8266", self.ELF)
-        image = esptool.LoadFirmwareImage("esp8266", self.BIN_LOAD)
+        image = esptool.LoadFirmwareImage("esp8266", self.BIN)
         self.assertEqual(3, len(image.segments))
         self.assertImageContainsSection(image, self.ELF, ".data")
         self.assertImageContainsSection(image, self.ELF, ".text")
         self.assertImageContainsSection(image, self.ELF, ".rodata")
 
     def tearDown(self):
-        try_delete(self.BIN_LOAD)
-        try_delete(self.BIN_IROM)
+        try_delete(self.BIN)
 
 class ESP8266V2ImageTests(BaseTestCase):
 
@@ -212,31 +209,21 @@ class ESP32ImageTests(BaseTestCase):
         ELF="esp32-bootloader.elf"
         BIN="esp32-bootloader.bin"
         image = self._test_elf2image(ELF, BIN)
-        self.assertEqual(3, len(image.segments))
+        self.assertEqual(4, len(image.segments))
         for section in [ ".iram1.text", ".iram_pool_1.text",
-                         ".dram0.rodata"]:
+                         ".dram0.data", ".dram0.rodata"]:
             self.assertImageContainsSection(image, ELF, section)
 
     def test_app_template(self):
         ELF="esp32-app-template.elf"
         BIN="esp32-app-template.bin"
         image = self._test_elf2image(ELF, BIN)
-        self.assertEqual(6, len(image.segments))
-        # the other segment is a padding segment
+        self.assertEqual(8, len(image.segments))
+        # the other two segments are padding segments
         for section in [ ".iram0.text", ".iram0.vectors",
                          ".dram0.data", ".flash.rodata",
-                         ".flash.text" ]:
+                         ".flash.text", ".rtc.text"]:
             self.assertImageContainsSection(image, ELF, section)
-
-    def test_too_many_sections(self):
-        ELF="esp32-too-many-sections.elf"
-        BIN="esp32-too-many-sections.bin"
-        with self.assertRaises(subprocess.CalledProcessError) as e:
-            self._test_elf2image(ELF, BIN)
-        output = e.exception.output
-        self.assertIn(b"max 16", output)
-        self.assertIn(b"linker script", output)
-
 
 class ESP8266FlashHeaderTests(BaseTestCase):
     def test_2mb(self):
@@ -266,30 +253,6 @@ class ESP32FlashHeaderTests(BaseTestCase):
                 self.assertEqualHex(0x40, header[3])
         finally:
             try_delete(BIN)
-
-class ELFSHA256Tests(BaseTestCase):
-    ELF = "esp32-app-template.elf"
-    SHA_OFFS = 0xb0  # absolute offset of the SHA in the .bin file
-    BIN = "esp32-app-template.bin"
-
-    def test_binary_patched(self):
-        self.run_elf2image("esp32", self.ELF, extra_args=["--elf-sha256-offset", "0x%x" % self.SHA_OFFS])
-        image = esptool.LoadFirmwareImage("esp32", self.BIN)
-        rodata_segment = image.segments[0]
-        observed_sha256 = rodata_segment.data[self.SHA_OFFS-0x20:self.SHA_OFFS-0x20+32] # subtract 0x20 byte header here
-
-        sha256 = hashlib.sha256()
-        with open(self.ELF, "rb") as f:
-            expected_sha256 = hashlib.sha256(f.read()).digest()
-
-        self.assertSequenceEqual(expected_sha256, observed_sha256)
-
-    def test_no_overwrite_data(self):
-        with self.assertRaises(subprocess.CalledProcessError) as e:
-            self.run_elf2image("esp32", "esp32-bootloader.elf", extra_args=["--elf-sha256-offset", "0xb0"])
-        output = e.exception.output
-        self.assertIn(b"SHA256", output)
-        self.assertIn(b"zero", output)
 
 
 if __name__ == '__main__':
