@@ -28,7 +28,7 @@ After installing, you will have `esptool.py` installed into the default Python e
 
 Manual installation allows you to run the latest development version from this repository.
 
-esptool.py depends on [pySerial](https://github.com/pyserial/pyserial#readme) version 2.5 or newer for serial communication with the target device.
+esptool.py depends on [pySerial](https://github.com/pyserial/pyserial#readme) version 3.0 or newer for serial communication with the target device.
 
 If you choose to install esptool.py system-wide by running `python setup.py install`, then this will be taken care of automatically.
 
@@ -152,7 +152,7 @@ Device: 4016
 Detected flash size: 4MB
 ```
 
-Refer to [flashrom source code](http://code.coreboot.org/p/flashrom/source/tree/HEAD/trunk/flashchips.h) for flash chip manufacturer name and part number.
+Refer to [flashrom source code](https://review.coreboot.org/cgit/flashrom.git/tree/flashchips.h) for flash chip manufacturer name and part number.
 
 ### Convert ELF to Binary: elf2image
 
@@ -415,6 +415,20 @@ Note that not every serial program supports the unusual ESP8266 74880bps "boot l
 ## Tracing esptool.py interactions
 
 Running `esptool.py --trace` will dump all serial interactions to the standard output (this is *a lot* of output). This can be helpful when debugging issues with the serial connection, or when providing information for bug reports.
+
+## Using esptool.py from Python
+
+esptool.py can easily be integrated into Python applications or called from other Python scripts.
+
+While it currently does have a poor Python API, something which [#208](https://github.com/espressif/esptool/issues/208) will address, it allows for passing CLI 
+arguments to `esptool.main()`. This workaround makes integration very straightforward as you can pass exactly the 
+same arguments as you would on the CLI.
+
+```python
+command = ['--baud', '460800', 'read_flash', '0', '0x200000', 'flash_contents.bin']
+print('Using command %s' % ' '.join(command))
+esptool.main(command)
+```
 
 ## Internal Technical Documentation
 
