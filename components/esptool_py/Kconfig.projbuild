@@ -38,6 +38,14 @@ config ESPTOOLPY_BAUD
 	default 2000000 if ESPTOOLPY_BAUD_2MB
 	default ESPTOOLPY_BAUD_OTHER_VAL if ESPTOOLPY_BAUD_OTHER
 
+config ESPTOOLPY_RESET_BREAK
+	bool "Send break to reset device"
+	default "n"
+	help
+        	Enabling this option allows the device to be reset in-band by sending a BREAK over the
+                serial line. This causes the TX line to go low for 200ms or so which can be detected by
+                external components. Not intended for producion use.
+
 config ESPTOOLPY_COMPRESSED
 	bool "Use compressed upload"
 	default "y"
