@@ -2743,7 +2743,7 @@ def main():
                     'esp32': ESP32ROM,
                 }[args.chip]
                 esp = chip_class(args.port, initial_baud, args.trace)
-                esp.connect(args.before)
+                esp.connect(args.before, args.send_break)
         except FatalError as err:
             if args.port is not None:
                 raise
